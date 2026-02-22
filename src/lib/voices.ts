@@ -1,10 +1,27 @@
-import { ensureAudioGraph, getMasterGain } from "./audio-engine";
+import { ensureAudioGraph, getInstrumentBus, getBassBus } from "./audio-engine";
 
 function voicePiano(freq: number, t: number, dur: number): void {
   const ctx = ensureAudioGraph();
-  const out = getMasterGain()!;
+  const out = getInstrumentBus()!.input;
   const amp = ctx.createGain();
-  amp.connect(out);
+
+  // Lowpass damping filter: freq*6 → freq*2 over note duration
+  const damper = ctx.createBiquadFilter();
+  damper.type = "lowpass";
+  damper.frequency.setValueAtTime(freq * 6, t);
+  damper.frequency.exponentialRampToValueAtTime(freq * 2, t + dur);
+  damper.Q.value = 0.7;
+  amp.connect(damper);
+  damper.connect(out);
+
+  // Micro-panning: seeded by freq for consistency
+  const pan = ctx.createStereoPanner();
+  const seed = (freq * 137.5) % 1;
+  pan.pan.value = (seed - 0.5) * 0.3; // ±0.15
+  damper.disconnect();
+  damper.connect(pan);
+  pan.connect(out);
+
   const o1 = ctx.createOscillator();
   o1.type = "sine";
   o1.frequency.value = freq;
@@ -16,9 +33,28 @@ function voicePiano(freq: number, t: number, dur: number): void {
   hg.gain.value = 0.08;
   o2.connect(hg);
   hg.connect(amp);
+
+  // Hammer transient: short noise burst at onset → bandpass at freq*4
+  const noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.005, ctx.sampleRate);
+  const nd = noiseBuf.getChannelData(0);
+  for (let i = 0; i < noiseBuf.length; i++) nd[i] = Math.random() * 2 - 1;
+  const noiseSrc = ctx.createBufferSource();
+  noiseSrc.buffer = noiseBuf;
+  const noiseBP = ctx.createBiquadFilter();
+  noiseBP.type = "bandpass";
+  noiseBP.frequency.value = freq * 4;
+  noiseBP.Q.value = 1;
+  const noiseGain = ctx.createGain();
+  noiseGain.gain.value = 0.12;
+  noiseSrc.connect(noiseBP);
+  noiseBP.connect(noiseGain);
+  noiseGain.connect(amp);
+  noiseSrc.start(t);
+  noiseSrc.stop(t + 0.005);
+
   const r = Math.min(dur * 0.4, 1.8);
   amp.gain.setValueAtTime(0, t);
-  amp.gain.linearRampToValueAtTime(0.32, t + 0.005);
+  amp.gain.linearRampToValueAtTime(0.45, t + 0.005);
   amp.gain.exponentialRampToValueAtTime(0.14, t + 0.12);
   amp.gain.exponentialRampToValueAtTime(0.08, t + dur - 0.05);
   amp.gain.exponentialRampToValueAtTime(0.0001, t + dur + r);
@@ -30,40 +66,50 @@ function voicePiano(freq: number, t: number, dur: number): void {
 
 function voiceSynth(freq: number, t: number, dur: number): void {
   const ctx = ensureAudioGraph();
+  const out = getInstrumentBus()!.input;
   const amp = ctx.createGain();
   const filt = ctx.createBiquadFilter();
   filt.type = "lowpass";
-  filt.Q.value = 6;
+  filt.Q.value = 3.5;
   filt.frequency.setValueAtTime(200, t);
-  filt.frequency.exponentialRampToValueAtTime(freq * 8, t + 0.4);
+  filt.frequency.exponentialRampToValueAtTime(freq * 6, t + 0.4);
   amp.connect(filt);
-  filt.connect(getMasterGain()!);
-  [0, 7, -7, 12].forEach((dt) => {
+  filt.connect(out);
+
+  [0, 7, -7, 12].forEach((dt, i) => {
     const o = ctx.createOscillator();
     o.type = "sawtooth";
     o.frequency.value = freq;
     o.detune.value = dt;
     const g = ctx.createGain();
-    g.gain.value = 0.18;
+    g.gain.value = 0.15;
+
+    // Alternate ±0.2 per oscillator for stereo width
+    const pan = ctx.createStereoPanner();
+    pan.pan.value = i % 2 === 0 ? -0.2 : 0.2;
     o.connect(g);
-    g.connect(amp);
+    g.connect(pan);
+    pan.connect(amp);
+
     o.start(t);
     o.stop(t + dur + 0.3);
   });
   amp.gain.setValueAtTime(0, t);
-  amp.gain.linearRampToValueAtTime(0.55, t + 0.08);
+  amp.gain.linearRampToValueAtTime(0.50, t + 0.08);
   amp.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.25);
 }
 
 function voicePad(freq: number, t: number, dur: number): void {
   const ctx = ensureAudioGraph();
+  const out = getInstrumentBus()!.input;
   const amp = ctx.createGain();
   const f = ctx.createBiquadFilter();
   f.type = "lowpass";
   f.frequency.value = freq * 4;
   f.Q.value = 0.5;
   amp.connect(f);
-  f.connect(getMasterGain()!);
+  f.connect(out);
+  // Pad already wide via 5 detuned oscs — pan 0
   [-14, -7, 0, 7, 14].forEach((dt, i) => {
     const o = ctx.createOscillator();
     o.type = i % 2 === 0 ? "sine" : "triangle";
@@ -79,14 +125,27 @@ function voicePad(freq: number, t: number, dur: number): void {
   const atk = Math.min(dur * 0.35, 1.2);
   const rel = Math.min(dur * 0.5, 2.0);
   amp.gain.setValueAtTime(0, t);
-  amp.gain.linearRampToValueAtTime(0.5, t + atk);
+  amp.gain.linearRampToValueAtTime(0.45, t + atk);
   amp.gain.linearRampToValueAtTime(0.0001, t + dur + rel);
 }
 
 function voiceOrgan(freq: number, t: number, dur: number): void {
   const ctx = ensureAudioGraph();
+  const out = getInstrumentBus()!.input;
   const amp = ctx.createGain();
-  amp.connect(getMasterGain()!);
+  amp.connect(out);
+
+  // Vibrato LFO: 5.5Hz sine modulating all osc frequencies at ~10 cents
+  const lfo = ctx.createOscillator();
+  lfo.type = "sine";
+  lfo.frequency.value = 5.5;
+  const lfoGain = ctx.createGain();
+  // 0.6% depth ≈ 10 cents: freq * 0.006
+  lfoGain.gain.value = freq * 0.006;
+  lfo.connect(lfoGain);
+  lfo.start(t);
+  lfo.stop(t + dur + 0.1);
+
   [
     { m: 1, v: 0.35 },
     { m: 2, v: 0.25 },
@@ -97,6 +156,8 @@ function voiceOrgan(freq: number, t: number, dur: number): void {
     const o = ctx.createOscillator();
     o.type = "sine";
     o.frequency.value = freq * m;
+    // Connect LFO modulation to frequency
+    lfoGain.connect(o.frequency);
     const g = ctx.createGain();
     g.gain.value = v;
     o.connect(g);
@@ -105,38 +166,61 @@ function voiceOrgan(freq: number, t: number, dur: number): void {
     o.stop(t + dur + 0.06);
   });
   amp.gain.setValueAtTime(0, t);
-  amp.gain.linearRampToValueAtTime(0.55, t + 0.012);
+  amp.gain.linearRampToValueAtTime(0.50, t + 0.012);
   amp.gain.linearRampToValueAtTime(0.0001, t + dur + 0.05);
 }
 
 function voiceBells(freq: number, t: number, dur: number): void {
   const ctx = ensureAudioGraph();
+  const out = getInstrumentBus()!.input;
   const amp = ctx.createGain();
-  amp.connect(getMasterGain()!);
+  amp.connect(out);
   [
     { r: 1, v: 0.5, d: dur + 1.5 },
     { r: 2.76, v: 0.25, d: dur * 0.6 },
     { r: 5.4, v: 0.15, d: dur * 0.4 },
-  ].forEach(({ r, v, d }) => {
+  ].forEach(({ r, v, d }, i) => {
     const o = ctx.createOscillator();
     o.type = "sine";
     o.frequency.value = freq * r;
     const g = ctx.createGain();
     g.gain.setValueAtTime(v * 0.45, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+
+    // Random ±0.35 per partial for stereo spread
+    const pan = ctx.createStereoPanner();
+    const seed = ((freq * r * 97.3) % 1);
+    pan.pan.value = (seed - 0.5) * 0.7; // ±0.35
     o.connect(g);
-    g.connect(amp);
+    g.connect(pan);
+    pan.connect(amp);
+
     o.start(t);
     o.stop(t + d + 0.1);
   });
   amp.gain.setValueAtTime(0, t);
-  amp.gain.linearRampToValueAtTime(1, t + 0.002);
+  amp.gain.linearRampToValueAtTime(0.50, t + 0.002);
 }
 
 function voicePluck(freq: number, t: number): void {
   const ctx = ensureAudioGraph();
+  const out = getInstrumentBus()!.input;
   const amp = ctx.createGain();
-  amp.connect(getMasterGain()!);
+
+  // Lowpass filter: Karplus-Strong-style darkening
+  const filt = ctx.createBiquadFilter();
+  filt.type = "lowpass";
+  filt.frequency.setValueAtTime(freq * 12, t);
+  filt.frequency.exponentialRampToValueAtTime(freq * 1.5, t + 0.4);
+  filt.Q.value = 0.7;
+  amp.connect(filt);
+
+  // Panned slightly right
+  const pan = ctx.createStereoPanner();
+  pan.pan.value = 0.1;
+  filt.connect(pan);
+  pan.connect(out);
+
   const o = ctx.createOscillator();
   o.type = "sawtooth";
   o.frequency.value = freq;
@@ -144,7 +228,7 @@ function voicePluck(freq: number, t: number): void {
   o.start(t);
   o.stop(t + 1.0);
   amp.gain.setValueAtTime(0, t);
-  amp.gain.linearRampToValueAtTime(0.7, t + 0.003);
+  amp.gain.linearRampToValueAtTime(0.55, t + 0.003);
   amp.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
 }
 
@@ -160,8 +244,11 @@ function voiceBass(freq: number, t: number, dur: number): void {
   f.type = "lowpass";
   f.frequency.value = 500;
   amp.connect(f);
-  f.connect(getMasterGain()!);
-  amp.gain.setValueAtTime(0.9, t);
+  // Route to bass bus (always center)
+  f.connect(getBassBus()!.input);
+  // Fix bass click: zero-start with 3ms attack ramp
+  amp.gain.setValueAtTime(0, t);
+  amp.gain.linearRampToValueAtTime(0.7, t + 0.003);
   amp.gain.exponentialRampToValueAtTime(0.0001, t + Math.min(dur * 0.5, 1.0));
   osc.start(t);
   osc.stop(t + dur + 0.1);
@@ -169,16 +256,25 @@ function voiceBass(freq: number, t: number, dur: number): void {
 
 function voiceEPiano(freq: number, t: number, dur: number): void {
   const ctx = ensureAudioGraph();
+  const out = getInstrumentBus()!.input;
   const amp = ctx.createGain();
-  amp.connect(getMasterGain()!);
+
+  // Random ±0.1 panning
+  const pan = ctx.createStereoPanner();
+  const seed = (freq * 211.7) % 1;
+  pan.pan.value = (seed - 0.5) * 0.2; // ±0.1
+  amp.connect(pan);
+  pan.connect(out);
+
   const car = ctx.createOscillator();
   car.type = "sine";
   car.frequency.value = freq;
   const mod = ctx.createOscillator();
   const mg = ctx.createGain();
-  mod.frequency.value = freq * 14;
-  mg.gain.setValueAtTime(freq * 5, t);
-  mg.gain.exponentialRampToValueAtTime(freq * 0.5, t + 0.3);
+  // Rhodes-like FM: mod ratio 7, reduced mod index
+  mod.frequency.value = freq * 7;
+  mg.gain.setValueAtTime(freq * 3, t);
+  mg.gain.exponentialRampToValueAtTime(freq * 0.3, t + 0.3);
   mod.connect(mg);
   mg.connect(car.frequency);
   car.connect(amp);
@@ -187,7 +283,7 @@ function voiceEPiano(freq: number, t: number, dur: number): void {
   mod.stop(t + dur + 0.4);
   car.stop(t + dur + 0.4);
   amp.gain.setValueAtTime(0, t);
-  amp.gain.linearRampToValueAtTime(0.38, t + 0.007);
+  amp.gain.linearRampToValueAtTime(0.48, t + 0.007);
   amp.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.35);
 }
 

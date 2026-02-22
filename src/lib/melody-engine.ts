@@ -102,17 +102,41 @@ export function generateMelody(
 export function playMelodyNote(midi: number, t: number, dur: number): void {
   const ctx = ensureAudioGraph();
   const freq = 440 * Math.pow(2, (midi - 69) / 12);
-  const osc = ctx.createOscillator();
+
   const amp = ctx.createGain();
+
+  // Lowpass filter at freq*5 for warmth
+  const filt = ctx.createBiquadFilter();
+  filt.type = "lowpass";
+  filt.frequency.value = freq * 5;
+  filt.Q.value = 0.7;
+  amp.connect(filt);
+  filt.connect(getMelodyGain()!);
+
+  // Primary oscillator
+  const osc = ctx.createOscillator();
   osc.type = "triangle";
   osc.frequency.value = freq;
   osc.connect(amp);
-  amp.connect(getMelodyGain()!);
+
+  // Second oscillator: sine, +7 cents detune, 30% gain for width
+  const osc2 = ctx.createOscillator();
+  osc2.type = "sine";
+  osc2.frequency.value = freq;
+  osc2.detune.value = 7;
+  const osc2Gain = ctx.createGain();
+  osc2Gain.gain.value = 0.3;
+  osc2.connect(osc2Gain);
+  osc2Gain.connect(amp);
+
   const atk = Math.min(0.015, dur * 0.08);
   const rel = Math.min(dur * 0.35, 0.5);
   amp.gain.setValueAtTime(0, t);
-  amp.gain.linearRampToValueAtTime(0.75, t + atk);
+  amp.gain.linearRampToValueAtTime(0.55, t + atk);
   amp.gain.exponentialRampToValueAtTime(0.0001, t + dur + rel);
+
   osc.start(t);
+  osc2.start(t);
   osc.stop(t + dur + rel + 0.05);
+  osc2.stop(t + dur + rel + 0.05);
 }

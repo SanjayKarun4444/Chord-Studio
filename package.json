@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "gen:samples": "node scripts/generate-placeholder-samples.mjs"
   },
   "dependencies": {
     "jszip": "^3.10.1",

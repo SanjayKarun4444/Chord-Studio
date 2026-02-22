@@ -85,7 +85,24 @@ export function validateCoherence(progression: Progression): string[] {
     }
   }
 
-  // 5. Empty claps — fill with genre default if expected
+  // 5. Clap/snare collision — offset claps for natural flam
+  if (claps.length > 0 && snares.length > 0) {
+    let offsetApplied = false;
+    const adjusted = claps.map((c) => {
+      const collides = snares.some((s) => Math.abs(c - s) < 0.15);
+      if (collides) {
+        offsetApplied = true;
+        return c + 0.02; // ~12ms flam at 100 BPM
+      }
+      return c;
+    });
+    if (offsetApplied) {
+      warnings.push("clap-snare-flam: offset colliding claps by +0.02 beats");
+      drums.claps = adjusted;
+    }
+  }
+
+  // 6. Empty claps — fill with genre default if expected
   const genresExpectingClaps = [
     "reggaeton", "house", "gospel", "rnb", "soul", "funk", "drill",
   ];
