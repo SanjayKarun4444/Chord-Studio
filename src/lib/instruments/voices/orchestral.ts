@@ -1,5 +1,8 @@
 import { ensureAudioGraph, getInstrumentBus } from "../../audio-engine";
 
+/** Clamp filter frequency to stay safely below Nyquist */
+const safeFreq = (f: number, sr: number) => Math.min(f, sr * 0.45);
+
 /**
  * Orchestral Strings — 4-6 detuned sawtooths (ensemble), slow attack, LPF, chorus LFO
  */
@@ -10,7 +13,7 @@ export function voiceOrchestraStrings(freq: number, t: number, dur: number): voi
 
   const lpf = ctx.createBiquadFilter();
   lpf.type = "lowpass";
-  lpf.frequency.value = freq * 3;
+  lpf.frequency.value = safeFreq(freq * 3, ctx.sampleRate);
   lpf.Q.value = 0.5;
   amp.connect(lpf);
   lpf.connect(out);
@@ -20,7 +23,7 @@ export function voiceOrchestraStrings(freq: number, t: number, dur: number): voi
   lfo.type = "sine";
   lfo.frequency.value = 0.4;
   const lfoG = ctx.createGain();
-  lfoG.gain.value = freq * 0.5;
+  lfoG.gain.value = freq * 0.15;
   lfo.connect(lfoG);
   lfoG.connect(lpf.frequency);
   lfo.start(t);

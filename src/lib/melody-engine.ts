@@ -2,6 +2,9 @@ import { NOTE_MIDI_MAP } from "./constants";
 import { ensureAudioGraph, getMelodyGain } from "./audio-engine";
 import type { MelodyNote } from "./types";
 
+/** Clamp filter frequency to stay safely below Nyquist */
+const safeFreq = (f: number, sr: number) => Math.min(f, sr * 0.45);
+
 export function keyScale(keyStr: string): number[] {
   const m = keyStr.match(/^([A-G][#b]?)\s*(m(?:in)?|minor)?/i);
   const rootPc = (NOTE_MIDI_MAP[m ? m[1] : "C"] || 60) % 12;
@@ -108,7 +111,7 @@ export function playMelodyNote(midi: number, t: number, dur: number): void {
   // Lowpass filter at freq*5 for warmth
   const filt = ctx.createBiquadFilter();
   filt.type = "lowpass";
-  filt.frequency.value = freq * 5;
+  filt.frequency.value = safeFreq(freq * 5, ctx.sampleRate);
   filt.Q.value = 0.7;
   amp.connect(filt);
   filt.connect(getMelodyGain()!);

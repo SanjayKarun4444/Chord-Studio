@@ -13,7 +13,7 @@ export function voiceSynthLead(freq: number, t: number, dur: number): void {
 
   const filt = ctx.createBiquadFilter();
   filt.type = "lowpass";
-  filt.Q.value = 6;
+  filt.Q.value = 2.5;
   filt.frequency.setValueAtTime(safeFreq(freq * 2, ctx.sampleRate), t);
   filt.frequency.exponentialRampToValueAtTime(safeFreq(freq * 8, ctx.sampleRate), t + 0.15);
   filt.frequency.exponentialRampToValueAtTime(safeFreq(freq * 3, ctx.sampleRate), t + dur);
@@ -23,7 +23,7 @@ export function voiceSynthLead(freq: number, t: number, dur: number): void {
   lfo.type = "sine";
   lfo.frequency.value = 4.5;
   const lfoGain = ctx.createGain();
-  lfoGain.gain.value = freq * 0.8;
+  lfoGain.gain.value = freq * 0.3;
   lfo.connect(lfoGain);
   lfoGain.connect(filt.frequency);
   lfo.start(t);
@@ -67,7 +67,7 @@ export function voiceChoir(freq: number, t: number, dur: number): void {
   amp.connect(out);
 
   const formants = [800, 1200, 2500];
-  const formantQs = [10, 8, 12];
+  const formantQs = [5, 4, 6];
 
   // Two detuned sawtooths as excitation
   [-5, 5].forEach((detune) => {

@@ -1,5 +1,8 @@
 import { ensureAudioGraph, getInstrumentBus } from "../../audio-engine";
 
+/** Clamp filter frequency to stay safely below Nyquist */
+const safeFreq = (f: number, sr: number) => Math.min(f, sr * 0.45);
+
 /**
  * Pan Flute — sine + breath noise, vibrato, slow attack
  */
@@ -33,7 +36,7 @@ export function voicePanFlute(freq: number, t: number, dur: number): void {
   ns.loop = true;
   const bp = ctx.createBiquadFilter();
   bp.type = "bandpass";
-  bp.frequency.value = freq * 2;
+  bp.frequency.value = safeFreq(freq * 2, ctx.sampleRate);
   bp.Q.value = 2;
   ns.connect(bp);
   bp.connect(amp);
@@ -132,11 +135,11 @@ export function voiceSitar(freq: number, t: number, dur: number): void {
   o.stop(t + dur + 1);
 
   // Sympathetic resonance bandpass
-  [freq * 1.5, freq * 2, freq * 3].forEach((rf) => {
+  [freq * 1.5, freq * 2, freq * 3].map((f) => safeFreq(f, ctx.sampleRate)).forEach((rf) => {
     const bp = ctx.createBiquadFilter();
     bp.type = "bandpass";
     bp.frequency.value = rf;
-    bp.Q.value = 30;
+    bp.Q.value = 15;
     const rg = ctx.createGain();
     rg.gain.value = 0.04;
     og.connect(bp);
