@@ -7,7 +7,9 @@ export interface StepTrack {
   steps: StepData[];
 }
 
-export type PatternTrackId = "kick" | "snare" | "hihat" | "clap" | "ohat";
+export type CoreTrackId = "kick" | "snare" | "hihat" | "clap" | "ohat";
+export type ExtendedTrackId = "crash" | "ride" | "high_tom" | "mid_tom" | "floor_tom";
+export type PatternTrackId = CoreTrackId | ExtendedTrackId;
 
 export interface TimeSignature {
   numerator: number;
@@ -24,7 +26,7 @@ export interface StepGridPattern {
   swingCapable: boolean;
   stepsPerBeat: number;   // 4 = 16th grid, 3 = triplet grid
   totalSteps: number;     // numerator * stepsPerBeat
-  tracks: Record<PatternTrackId, StepTrack>;
+  tracks: Record<CoreTrackId, StepTrack> & Partial<Record<ExtendedTrackId, StepTrack>>;
   metadata?: {
     description?: string;
     difficulty?: "basic" | "intermediate" | "advanced";

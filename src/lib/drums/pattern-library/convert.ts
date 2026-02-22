@@ -7,6 +7,11 @@ const DRUM_TYPE_MAP: Record<PatternTrackId, keyof DrumPattern> = {
   hihat: "hihats",
   clap: "claps",
   ohat: "ohats",
+  crash: "crashes",
+  ride: "rides",
+  high_tom: "highToms",
+  mid_tom: "midToms",
+  floor_tom: "floorToms",
 };
 
 const VEL_KEY_MAP: Record<PatternTrackId, keyof DrumPattern> = {
@@ -15,7 +20,17 @@ const VEL_KEY_MAP: Record<PatternTrackId, keyof DrumPattern> = {
   hihat: "hihatVels",
   clap: "clapVels",
   ohat: "ohatVels",
+  crash: "crashVels",
+  ride: "rideVels",
+  high_tom: "highTomVels",
+  mid_tom: "midTomVels",
+  floor_tom: "floorTomVels",
 };
+
+const ALL_TRACK_IDS: PatternTrackId[] = [
+  "kick", "snare", "hihat", "clap", "ohat",
+  "crash", "ride", "high_tom", "mid_tom", "floor_tom",
+];
 
 /**
  * Converts a StepGridPattern to the existing DrumPattern format
@@ -51,12 +66,12 @@ export function stepGridToDrumPattern(
     ohatVels: [],
   };
 
-  const trackIds: PatternTrackId[] = ["kick", "snare", "hihat", "clap", "ohat"];
+  for (const trackId of ALL_TRACK_IDS) {
+    const track = pattern.tracks[trackId as keyof typeof pattern.tracks];
+    if (!track) continue; // skip extended tracks not present in this pattern
 
-  for (const trackId of trackIds) {
-    const track = pattern.tracks[trackId];
-    const posKey = DRUM_TYPE_MAP[trackId] as keyof Pick<DrumPattern, "kicks" | "snares" | "hihats" | "claps" | "ohats">;
-    const velKey = VEL_KEY_MAP[trackId] as keyof Pick<DrumPattern, "kickVels" | "snareVels" | "hihatVels" | "clapVels" | "ohatVels">;
+    const posKey = DRUM_TYPE_MAP[trackId];
+    const velKey = VEL_KEY_MAP[trackId];
 
     const positions: number[] = [];
     const velocities: number[] = [];

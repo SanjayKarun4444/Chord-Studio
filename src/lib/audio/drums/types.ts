@@ -1,4 +1,12 @@
-export type DrumType = "kick" | "snare" | "hihat" | "ohat" | "clap";
+export type CoreDrumType = "kick" | "snare" | "hihat" | "ohat" | "clap";
+export type ExtendedDrumType = "crash" | "ride" | "high_tom" | "mid_tom" | "floor_tom";
+export type DrumType = CoreDrumType | ExtendedDrumType;
+
+export const ALL_DRUM_TYPES: DrumType[] = [
+  "kick", "snare", "hihat", "ohat", "clap",
+  "crash", "ride", "high_tom", "mid_tom", "floor_tom",
+];
+
 export type PackId = "common" | "trap" | "lofi" | "boom_bap" | "drill" | "jazz" | "gospel" | "house" | "rnb" | "afrobeats" | "funk";
 export type DrumEngineMode = "samples" | "synth";
 
@@ -11,7 +19,7 @@ export interface SampleEntry {
 export interface PackManifest {
   id: PackId;
   label: string;
-  drums: Record<DrumType, SampleEntry[]>;  // 2-4 round-robin variations
+  drums: Partial<Record<DrumType, SampleEntry[]>> & Record<CoreDrumType, SampleEntry[]>;
 }
 
 export interface SamplePlayOptions {

@@ -10,6 +10,17 @@ export interface DrumPattern {
   hihatVels?: number[];
   clapVels?: number[];
   ohatVels?: number[];
+  // Extended drum types (optional for backward compat)
+  crashes?: number[];
+  rides?: number[];
+  highToms?: number[];
+  midToms?: number[];
+  floorToms?: number[];
+  crashVels?: number[];
+  rideVels?: number[];
+  highTomVels?: number[];
+  midTomVels?: number[];
+  floorTomVels?: number[];
 }
 
 export interface Progression {

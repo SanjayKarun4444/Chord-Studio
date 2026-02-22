@@ -214,6 +214,59 @@
   border: 1px solid rgba(255,209,102,0.6);
 }
 
+/* ─── Drum Kit Hit Animations ─── */
+
+@keyframes drumKitKick {
+  0%   { transform: scale(1.025); filter: brightness(1.2); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+@keyframes drumKitSnare {
+  0%   { transform: scale(1.03); filter: brightness(1.25); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+@keyframes drumKitHihat {
+  0%   { transform: scale(1.015); filter: brightness(1.2); opacity: 0.85; }
+  100% { transform: scale(1); filter: brightness(1); opacity: 1; }
+}
+
+@keyframes drumKitOhat {
+  0%   { transform: scale(1.02); filter: brightness(1.2); opacity: 0.85; }
+  100% { transform: scale(1); filter: brightness(1); opacity: 1; }
+}
+
+@keyframes drumKitCrash {
+  0%   { transform: scale(1.02); filter: brightness(1.3); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+@keyframes drumKitRide {
+  0%   { transform: scale(1.015); filter: brightness(1.2); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+@keyframes drumKitTom {
+  0%   { transform: scale(1.025); filter: brightness(1.2); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+@keyframes drumKitClap {
+  0%   { transform: scale(1.03); filter: brightness(1.25); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+.drum-hit-kick   { animation: drumKitKick 180ms cubic-bezier(0.22,1,0.36,1) forwards; }
+.drum-hit-snare  { animation: drumKitSnare 150ms cubic-bezier(0.34,1.56,0.64,1) forwards; }
+.drum-hit-hihat  { animation: drumKitHihat 120ms ease-out forwards; }
+.drum-hit-ohat   { animation: drumKitOhat 200ms ease-out forwards; }
+.drum-hit-crash  { animation: drumKitCrash 250ms ease-out forwards; }
+.drum-hit-ride   { animation: drumKitRide 180ms ease-out forwards; }
+.drum-hit-tom    { animation: drumKitTom 160ms cubic-bezier(0.22,1,0.36,1) forwards; }
+.drum-hit-clap   { animation: drumKitClap 140ms cubic-bezier(0.34,1.56,0.64,1) forwards; }
+
+.drum-piece-hover:hover { filter: brightness(1.15); cursor: pointer; }
+
 /* ─── Drum Pattern System ─── */
 
 @keyframes stepCursor {

@@ -134,6 +134,7 @@ function scoreDensity(pattern: StepGridPattern, features: ProgressionFeatures): 
   let totalSteps = 0;
   for (const id of trackIds) {
     const track = pattern.tracks[id];
+    if (!track) continue;
     for (const step of track.steps) {
       totalSteps++;
       if (step.velocity > 0) activeSteps++;

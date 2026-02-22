@@ -21,6 +21,7 @@ export default function DrumTestPage() {
   const [playing, setPlaying] = useState(false);
   const [rrIndicators, setRrIndicators] = useState<Record<DrumType, number>>({
     kick: 0, snare: 0, hihat: 0, ohat: 0, clap: 0,
+    crash: 0, ride: 0, high_tom: 0, mid_tom: 0, floor_tom: 0,
   });
   const [drumLevel, setDrumLevel] = useState(0);
 

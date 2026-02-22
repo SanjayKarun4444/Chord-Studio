@@ -8,7 +8,7 @@ interface DrumStepGridProps {
   compact?: boolean;          // smaller version for previews
 }
 
-const TRACK_ORDER: { id: PatternTrackId; label: string; color: string }[] = [
+const CORE_TRACKS: { id: PatternTrackId; label: string; color: string }[] = [
   { id: "kick",  label: "KCK", color: "var(--color-gold)" },
   { id: "snare", label: "SNR", color: "var(--color-rose)" },
   { id: "hihat", label: "HHT", color: "var(--color-teal)" },
@@ -16,11 +16,25 @@ const TRACK_ORDER: { id: PatternTrackId; label: string; color: string }[] = [
   { id: "ohat",  label: "OHT", color: "#22D3EE" },
 ];
 
+const EXTENDED_TRACKS: { id: PatternTrackId; label: string; color: string }[] = [
+  { id: "crash",     label: "CRS", color: "#FACC15" },
+  { id: "ride",      label: "RDE", color: "#94A3B8" },
+  { id: "high_tom",  label: "HTM", color: "#FB923C" },
+  { id: "mid_tom",   label: "MTM", color: "#F97316" },
+  { id: "floor_tom", label: "FTM", color: "#EA580C" },
+];
+
 export default function DrumStepGrid({ pattern, activeStep = -1, compact = false }: DrumStepGridProps) {
   const { totalSteps, stepsPerBeat, tracks } = pattern;
   const cellSize = compact ? 10 : 16;
   const gap = compact ? 1 : 2;
   const labelW = compact ? 0 : 32;
+
+  // Build visible track list: always show core, show extended only if present
+  const visibleTracks = [
+    ...CORE_TRACKS,
+    ...EXTENDED_TRACKS.filter(({ id }) => id in tracks),
+  ];
 
   return (
     <div
@@ -32,8 +46,9 @@ export default function DrumStepGrid({ pattern, activeStep = -1, compact = false
       }}
     >
       <div className="flex flex-col" style={{ gap }}>
-        {TRACK_ORDER.map(({ id, label, color }) => {
-          const track = tracks[id];
+        {visibleTracks.map(({ id, label, color }) => {
+          const track = tracks[id as keyof typeof tracks];
+          if (!track) return null;
           return (
             <div key={id} className="flex items-center" style={{ gap }}>
               {/* Track label */}

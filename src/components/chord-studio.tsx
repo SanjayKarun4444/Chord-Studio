@@ -28,6 +28,9 @@ import TransportBar from "./transport-bar";
 import ChordCard from "./chord-card";
 import MidiExport from "./midi-export";
 import DrumPatternSelector from "./drum-pattern-selector";
+import DrumColumn from "./drum-kit/drum-kit";
+import { LEFT_COLUMN_PIECES, RIGHT_COLUMN_PIECES } from "./drum-kit/drum-kit-types";
+import { useDrumKitState } from "@/hooks/useDrumKitState";
 
 interface PlaybackRef {
   scheduler: LookaheadScheduler | null;
@@ -86,6 +89,9 @@ export default function ChordStudio() {
   // Drum recommendations
   const recommendations = useDrumRecommendations(progression);
   const { togglePreview, stopPreview } = useDrumPreview();
+
+  // Drum kit mute/solo state
+  const drumKitState = useDrumKitState();
 
   // Sync vol to audio engine
   useEffect(() => {
@@ -261,6 +267,12 @@ export default function ChordStudio() {
           schedWithVel(d.hihats || [], d.hihatVels, "hihat");
           schedWithVel(d.claps || [], d.clapVels, "clap");
           schedWithVel(d.ohats || [], d.ohatVels, "ohat");
+          // Extended drum types
+          schedWithVel(d.crashes || [], d.crashVels, "crash");
+          schedWithVel(d.rides || [], d.rideVels, "ride");
+          schedWithVel(d.highToms || [], d.highTomVels, "high_tom");
+          schedWithVel(d.midToms || [], d.midTomVels, "mid_tom");
+          schedWithVel(d.floorToms || [], d.floorTomVels, "floor_tom");
         }
 
         // Melody
@@ -515,7 +527,7 @@ export default function ChordStudio() {
                   keyName={progression.key}
                 />
 
-                {/* Piano Ripple */}
+                {/* Keyboard + Drums */}
                 <div
                   className="overflow-hidden rounded-[14px] px-4 pt-3.5 pb-2.5 mb-3.5"
                   style={{
@@ -524,18 +536,44 @@ export default function ChordStudio() {
                   }}
                 >
                   <div className="font-mono text-[0.58rem] text-text-dim tracking-[0.18em] uppercase mb-2.5 opacity-70">
-                    Keyboard &middot; click to preview &middot; plays with progression
+                    Keyboard{drumsOn ? " \u00b7 Drums" : ""} &middot; click to play
                   </div>
-                  <PianoRipple
-                    activeNotes={activeNotes}
-                    onKeyClick={(midi) => {
-                      const ctx = ensureAudioGraph();
-                      const freq = 440 * Math.pow(2, (midi - 69) / 12);
-                      playVoice(instrument, freq, ctx.currentTime, 1.0);
-                      setActiveNotes([midi]);
-                      setTimeout(() => setActiveNotes([]), 1200);
-                    }}
-                  />
+                  <div className="flex items-center gap-3">
+                    {drumsOn && (
+                      <DrumColumn
+                        pieces={LEFT_COLUMN_PIECES}
+                        onTrigger={(type, velocity) => {
+                          if (!drumKitState.isAudible(type)) return;
+                          const ctx = ensureAudioGraph();
+                          playDrum(type, ctx.currentTime, velocity);
+                        }}
+                        isAudible={drumKitState.isAudible}
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <PianoRipple
+                        activeNotes={activeNotes}
+                        onKeyClick={(midi) => {
+                          const ctx = ensureAudioGraph();
+                          const freq = 440 * Math.pow(2, (midi - 69) / 12);
+                          playVoice(instrument, freq, ctx.currentTime, 1.0);
+                          setActiveNotes([midi]);
+                          setTimeout(() => setActiveNotes([]), 1200);
+                        }}
+                      />
+                    </div>
+                    {drumsOn && (
+                      <DrumColumn
+                        pieces={RIGHT_COLUMN_PIECES}
+                        onTrigger={(type, velocity) => {
+                          if (!drumKitState.isAudible(type)) return;
+                          const ctx = ensureAudioGraph();
+                          playDrum(type, ctx.currentTime, velocity);
+                        }}
+                        isAudible={drumKitState.isAudible}
+                      />
+                    )}
+                  </div>
                 </div>
 
                 {/* Transport */}
