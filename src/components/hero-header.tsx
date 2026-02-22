@@ -234,7 +234,7 @@ export default function HeroHeader({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Describe your sound \u2014 genre, mood, key, BPM\u2026"
+              placeholder="Describe your sound — genre, mood, key, BPM…"
               className="hero-input-pulse"
               style={{
                 flex: 1,
