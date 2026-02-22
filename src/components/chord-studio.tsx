@@ -38,7 +38,8 @@ import {
 } from "@/lib/mix-engine";
 import BackgroundCanvas from "./background-canvas";
 import LoadingScreen from "./loading-screen";
-import Header from "./header";
+import HeroHeader from "./hero-header";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import ChatPanel from "./chat-panel";
 import QuickTags from "./quick-tags";
 import MetaCards from "./meta-cards";
@@ -69,6 +70,8 @@ interface PlaybackRef {
 
 export default function ChordStudio() {
   const [loaded, setLoaded] = useState(false);
+  const [uiMode, setUiMode] = useState<"landing" | "app">("landing");
+  const reducedMotion = usePrefersReducedMotion();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "ai",
@@ -398,6 +401,7 @@ export default function ChordStudio() {
   const conversationRef = useRef<{ role: string; content: string }[]>([]);
 
   const sendMessage = async (msg: string) => {
+    setUiMode("app");
     setMessages((m) => [...m, { role: "user", content: msg }]);
     setIsThinking(true);
     try {
@@ -447,6 +451,7 @@ export default function ChordStudio() {
   };
 
   const loadDefault = () => {
+    setUiMode("app");
     const ref = playbackRef.current;
     const prog = JSON.parse(
       JSON.stringify(
@@ -551,8 +556,26 @@ export default function ChordStudio() {
         }}
       >
         <div className="max-w-[920px] mx-auto px-5 pb-15">
-          <Header connected={true} />
+          <HeroHeader
+            uiMode={uiMode}
+            onSend={sendMessage}
+            onDefault={loadDefault}
+            connected={true}
+            reducedMotion={reducedMotion}
+          />
 
+          <div
+            style={{
+              opacity: uiMode === "app" ? 1 : 0,
+              transform: uiMode === "app" ? "translateY(0)" : "translateY(20px)",
+              transition: reducedMotion
+                ? "none"
+                : "opacity 600ms cubic-bezier(0.22,1,0.36,1) 350ms, transform 600ms cubic-bezier(0.22,1,0.36,1) 350ms",
+              pointerEvents: uiMode === "app" ? "auto" : "none",
+              maxHeight: uiMode === "app" ? "none" : 0,
+              overflow: uiMode === "app" ? "visible" : "hidden",
+            }}
+          >
           <div className="pt-6 flex flex-col gap-[18px]">
             {/* Quick tags */}
             <QuickTags onSelect={sendMessage} onDefault={loadDefault} />
@@ -700,6 +723,7 @@ export default function ChordStudio() {
                 <MidiExport progression={{ ...progression, tempo }} />
               </div>
             )}
+          </div>
           </div>
         </div>
       </div>
