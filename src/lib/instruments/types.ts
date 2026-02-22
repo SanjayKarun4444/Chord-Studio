@@ -1,4 +1,4 @@
-export type InstrumentCategory = "keys" | "synths" | "guitars" | "world" | "bass" | "orchestral";
+export type InstrumentCategory = "keys" | "synths" | "world" | "bass" | "orchestral";
 
 export type BusTarget = "instrument" | "bass";
 

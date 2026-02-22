@@ -8,7 +8,6 @@ interface InstrumentCardProps {
   score?: number;
   reason?: string;
   onSelect: (id: string) => void;
-  onHover?: (id: string | null) => void;
 }
 
 export default function InstrumentCard({
@@ -17,15 +16,12 @@ export default function InstrumentCard({
   score,
   reason,
   onSelect,
-  onHover,
 }: InstrumentCardProps) {
   const col = instrument.color;
 
   return (
     <button
       onClick={() => onSelect(instrument.id)}
-      onMouseEnter={() => onHover?.(instrument.id)}
-      onMouseLeave={() => onHover?.(null)}
       className="relative flex items-center gap-2.5 p-2.5 rounded-lg cursor-pointer transition-all duration-200 text-left w-full"
       style={{
         background: isActive ? `${col}18` : "rgba(6,6,10,0.5)",

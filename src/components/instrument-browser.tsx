@@ -1,15 +1,12 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   getAllInstruments,
   getCategories,
-  getInstrument,
   type InstrumentDefinition,
 } from "@/lib/instruments";
 import type { InstrumentScore } from "@/lib/instruments/recommendation/scorer";
-import { ensureAudioGraph } from "@/lib/audio-engine";
-import { playVoice } from "@/lib/voices";
 import InstrumentCard from "./instrument-card";
 
 interface InstrumentBrowserProps {
@@ -29,7 +26,6 @@ export default function InstrumentBrowser({
 }: InstrumentBrowserProps) {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const categories = useMemo(() => getCategories(), []);
   const allInstruments = useMemo(() => getAllInstruments(), []);
@@ -67,34 +63,6 @@ export default function InstrumentBrowser({
     }
     return map;
   }, [recommendations]);
-
-  // Hover preview with 300ms delay
-  const handleHover = useCallback((id: string | null) => {
-    if (hoverTimerRef.current) {
-      clearTimeout(hoverTimerRef.current);
-      hoverTimerRef.current = null;
-    }
-    if (!id) return;
-
-    hoverTimerRef.current = setTimeout(() => {
-      const def = getInstrument(id);
-      if (!def) return;
-      const ctx = ensureAudioGraph();
-      const now = ctx.currentTime;
-      // Play a brief C major chord preview
-      const notes = [261.63, 329.63, 392.0]; // C4, E4, G4
-      notes.forEach((freq) => {
-        playVoice(id, freq, now, 0.5);
-      });
-    }, 300);
-  }, []);
-
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-    };
-  }, []);
 
   // ESC to close
   useEffect(() => {
@@ -160,7 +128,6 @@ export default function InstrumentBrowser({
                     score={rec.totalScore}
                     reason={rec.reasons.join(", ")}
                     onSelect={handleSelect}
-                    onHover={handleHover}
                   />
                 ))}
               </div>
@@ -234,7 +201,6 @@ export default function InstrumentBrowser({
                         score={rec?.totalScore}
                         reason={rec?.reasons.join(", ")}
                         onSelect={handleSelect}
-                        onHover={handleHover}
                       />
                     );
                   })}
